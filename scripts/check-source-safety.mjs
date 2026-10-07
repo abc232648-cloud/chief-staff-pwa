@@ -14,7 +14,10 @@ const files = [
   'src/components/AppHeader.tsx',
   'src/auth/AuthContext.tsx',
   'src/auth/authApi.ts',
-  'src/auth/LoginScreen.tsx'
+  'src/auth/LoginScreen.tsx',
+  'src/api/client.ts',
+  'src/api/farm.ts',
+  'src/api/types.ts'
 ];
 
 const combined = files.map(read).join('\n');
@@ -46,6 +49,12 @@ if (!/credentials:\s*['"]include['"]/.test(authApi)) failures.push('Chief cookie
 if (!/cache:\s*['"]no-store['"]/.test(authApi)) failures.push('Auth requests must use no-store.');
 if (!auth.includes("principal.role === 'Owner' || principal.role === 'Administrator'")) failures.push('Owner/Administrator identities must not be mapped into Staff roles.');
 if (!auth.includes("farm.farm_role === 'GENERAL_MANAGER'") || !auth.includes("farm.farm_role === 'SUPERVISOR'")) failures.push('Production Staff role must derive from authoritative Farm role.');
+
+const apiClient = read('src/api/client.ts');
+if (!apiClient.includes("path.startsWith('/api/')")) failures.push('General API client must be same-origin /api/ only.');
+if (!apiClient.includes("code: 'DEV_LIVE_API_BLOCKED'")) failures.push('DEV identities must be blocked from live Chief API.');
+if (!apiClient.includes("code: 'CSRF_REQUIRED'")) failures.push('Mutations must require live CSRF.');
+if (/Authorization\s*[:=]|Bearer\s/.test(apiClient)) failures.push('Staff general API client must not construct browser bearer tokens.');
 
 if (failures.length) {
   console.error(failures.join('\n'));

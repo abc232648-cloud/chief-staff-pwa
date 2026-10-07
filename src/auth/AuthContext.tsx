@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { setStaffApiCsrfProvider } from '../api/client';
 import { isChiefStaffDevMode } from '../config/devMode';
 import {
   ROLE_PRESENTATION_CAPABILITIES,
@@ -96,6 +97,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
   const [csrf, setCsrf] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isDevMode) {
+      setStaffApiCsrfProvider(null);
+      return;
+    }
+    setStaffApiCsrfProvider(() => csrf);
+    return () => setStaffApiCsrfProvider(null);
+  }, [csrf, isDevMode]);
 
   const refresh = useCallback(async () => {
     if (isDevMode) {

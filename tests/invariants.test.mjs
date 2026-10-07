@@ -15,6 +15,9 @@ const architecture = read('ARCHITECTURE.md');
 const auth = read('src/auth/AuthContext.tsx');
 const authApi = read('src/auth/authApi.ts');
 const login = read('src/auth/LoginScreen.tsx');
+const apiClient = read('src/api/client.ts');
+const apiTypes = read('src/api/types.ts');
+const farmApi = read('src/api/farm.ts');
 
 test('DEV fixtures are build-time gated only', () => {
   assert.match(devMode, /VITE_CHIEF_STAFF_DEV_MODE\s*===\s*['"]true['"]/);
@@ -50,6 +53,51 @@ test('login form never claims browser credential persistence', () => {
   assert.match(login, /Passwords and session cookies are not stored by this PWA/);
   assert.match(login, /autoComplete="current-password"/);
   assert.doesNotMatch(login, /localStorage|sessionStorage/);
+});
+
+test('general Chief API client is same-origin, no-store, cookie-authenticated and CSRF-gated', () => {
+  assert.match(apiClient, /path\.startsWith\(['"]\/api\/['"]\)/);
+  assert.match(apiClient, /credentials:\s*['"]include['"]/);
+  assert.match(apiClient, /cache:\s*['"]no-store['"]/);
+  assert.match(apiClient, /X-Chief-CSRF/);
+  assert.match(apiClient, /CSRF_REQUIRED/);
+  assert.doesNotMatch(apiClient, /Authorization|Bearer/);
+});
+
+test('DEV fixture sessions cannot use the live Chief API client', () => {
+  assert.match(apiClient, /isChiefStaffDevMode\(\)/);
+  assert.match(apiClient, /DEV_LIVE_API_BLOCKED/);
+});
+
+test('API provenance and errors distinguish live, Chief, transport, client and protocol states', () => {
+  assert.match(apiTypes, /'live' \| 'cached' \| 'mock_isolated' \| 'unavailable'/);
+  assert.match(apiTypes, /'chief' \| 'transport' \| 'client' \| 'protocol'/);
+  assert.match(apiClient, /origin:\s*'chief'/);
+  assert.match(apiClient, /origin:\s*'transport'/);
+  assert.match(apiClient, /origin:\s*'client'/);
+  assert.match(apiClient, /origin:\s*'protocol'/);
+  assert.match(apiClient, /provenance:\s*'live'/);
+});
+
+test('API mutations have no automatic retry loop and require CSRF at request time', () => {
+  assert.doesNotMatch(apiClient, /maxRetries|retryCount|while\s*\(true\)/);
+  assert.match(apiClient, /mutation\s*=\s*!\['GET', 'HEAD'\]\.includes\(method\)/);
+  assert.match(auth, /setStaffApiCsrfProvider\(\(\) => csrf\)/);
+});
+
+test('Farm adapter contains only backend routes verified to exist today', () => {
+  for (const path of [
+    '/api/farm/setup',
+    '/api/farm/staff',
+    '/api/farm/journal',
+    '/api/farm/labour',
+    '/api/farm/planning',
+    '/api/farm/brief',
+    '/api/farm/units',
+    '/api/farm/physical-counts',
+    '/api/farm/photos'
+  ]) assert.ok(farmApi.includes(path), `${path} missing`);
+  assert.doesNotMatch(farmApi, /\/api\/tasks|\/api\/team|\/api\/incidents|\/api\/emergencies/);
 });
 
 test('Worker Supervisor Manager roles and presentation capabilities are explicit', () => {
