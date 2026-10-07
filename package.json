@@ -3,27 +3,30 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": { "node": ">=24 <25" },
   "scripts": {
     "dev": "vite --port=3001 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
     "lint": "node scripts/check-source-safety.mjs",
+    "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+    "release:smoke": "node scripts/release-smoke.mjs",
+    "browser:smoke": "node scripts/browser-smoke.mjs",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run release:smoke"
   },
   "dependencies": {
-    "lucide-react": "0.546.0",
-    "react": "19.0.1",
-    "react-dom": "19.0.1",
-    "react-router-dom": "7.18.4"
+    "lucide-react": "^0.546.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
-    "@types/node": "22.14.0",
-    "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
-    "@vitejs/plugin-react": "6.1.1",
-    "typescript": "7.0.2",
-    "vite": "8.3.0"
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
   }
 }
