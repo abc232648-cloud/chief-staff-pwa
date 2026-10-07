@@ -29,7 +29,8 @@ test('attendance is explicitly not connected and never inferred from task activi
   assert.match(screen, /Attendance/);
   assert.match(screen, /Not connected/);
   assert.match(screen, /does not infer whether someone is physically on site from task activity/);
-  assert.doesNotMatch(screen + hook, /present|absent|checked.in|on.site/i);
+  assert.doesNotMatch(screen + hook, /attendance[^\n]{0,60}(present|absent|checked.?in|on.?site)/i);
+  assert.doesNotMatch(screen + hook, /(present|absent|checked.?in|on.?site)[^\n]{0,60}attendance/i);
 });
 
 test('Supervisor verification remains on authoritative Tasks surface', () => {
