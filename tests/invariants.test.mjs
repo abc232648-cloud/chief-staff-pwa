@@ -11,6 +11,7 @@ const tokens = read('src/design/tokens.ts');
 const css = read('src/index.css');
 const nav = read('src/components/BottomNav.tsx');
 const screens = read('src/screens/index.tsx');
+const reportScreen = read('src/features/reports/ReportScreen.tsx');
 const architecture = read('ARCHITECTURE.md');
 const auth = read('src/auth/AuthContext.tsx');
 const authApi = read('src/auth/authApi.ts');
@@ -128,8 +129,11 @@ test('Staff navigation is the frozen five-tab operational model', () => {
 });
 
 test('Emergency UI states reporting boundary rather than inventing STOP', () => {
-  assert.match(screens, /Report emergency/);
-  assert.match(screens, /Only Chief can create authoritative STOP\/ASK routing/);
+  assert.match(reportScreen, /Emergency workflow is not connected in S7/);
+  assert.match(reportScreen, /Chief incident\/emergency escalation is built separately in S10/);
+  assert.match(reportScreen, /Emergency submission unavailable in this build/);
+  assert.match(reportScreen, /disabled><ShieldAlert/);
+  assert.doesNotMatch(reportScreen, /authoritative STOP|STOP created|STOP active/i);
 });
 
 test('architecture keeps Staff separate from Owner authority and Chief remains authoritative', () => {
