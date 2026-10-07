@@ -1,33 +1,10 @@
-import { AlertTriangle, Camera, CheckCircle2, FileWarning, ShieldAlert, Users } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Users } from 'lucide-react';
 import type { StaffIdentity } from '../types/capabilities';
 export { TodayScreen } from '../features/today/TodayScreen';
 export { TasksScreen } from '../features/tasks/TasksScreen';
+export { ReportScreen } from '../features/reports/ReportScreen';
 
 interface ScreenProps { identity: StaffIdentity; }
-
-export function ReportScreen() {
-  return (
-    <div className="screen-stack">
-      <section className="card hero">
-        <div className="eyebrow">Report</div>
-        <h1>Report from the field</h1>
-        <p className="muted">S7/S10 will add durable report and emergency submission. Current controls do not submit anything.</p>
-      </section>
-      <section className="card">
-        <div className="action-row">
-          <button className="secondary-action" type="button"><Camera size={18} /> Observation</button>
-          <button className="secondary-action" type="button"><FileWarning size={18} /> Problem</button>
-        </div>
-      </section>
-      <section className="card" style={{ borderColor: 'rgba(244,63,94,.55)' }}>
-        <div className="eyebrow" style={{ color: '#fb7185' }}>Emergency path</div>
-        <h2 style={{ marginTop: 8 }}>Urgent farm incident</h2>
-        <p className="muted">Staff reports evidence. Only Chief can create authoritative STOP/ASK routing.</p>
-        <button className="critical-action" type="button"><ShieldAlert size={18} /> Report emergency</button>
-      </section>
-    </div>
-  );
-}
 
 export function TeamScreen({ identity }: ScreenProps) {
   const worker = identity.role === 'worker';
