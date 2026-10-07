@@ -16,10 +16,12 @@ test('S13 has an installable same-family manifest', () => {
   assert.match(html, /rel="manifest" href="\/manifest\.webmanifest"/);
 });
 
-test('service worker never intercepts API or non-GET mutations', () => {
-  assert.match(sw, /request\.method !== 'GET'/);
-  assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\)/);
-  assert.doesNotMatch(sw, /\/api\/.*cache\.put|cache\.put.*\/api\//s);
+test('service worker bypasses API and non-GET mutations before respondWith/cache logic', () => {
+  const methodGuard = sw.indexOf("request.method !== 'GET'");
+  const apiGuard = sw.indexOf("url.pathname.startsWith('/api/')");
+  const respondWith = sw.indexOf('event.respondWith');
+  const cachePut = sw.indexOf('cache.put(request, copy)');
+  assert.ok(methodGuard >= 0 && apiGuard >= 0 && respondWith > apiGuard && cachePut > apiGuard);
 });
 
 test('service worker update requires an explicit user activation message', () => {
