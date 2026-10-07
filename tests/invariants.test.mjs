@@ -37,7 +37,9 @@ test('production auth uses existing Chief same-origin cookie and CSRF contract',
 });
 
 test('Owner and Administrator are not silently converted into Staff Manager', () => {
-  assert.match(auth, /principal\.role === 'Owner' \|\| principal\.role === 'Administrator'/);
+  assert.match(auth, /principal\.role !== 'Owner'/);
+  assert.match(auth, /principal\.role !== 'Administrator'/);
+  assert.match(auth, /principalCanUseStaff/);
   assert.match(app, /Owner\/Administrator identities should use Owner Mobile/);
 });
 
