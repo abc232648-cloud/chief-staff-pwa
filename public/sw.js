@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'chief-staff-shell-';
-const CACHE_NAME = `${CACHE_PREFIX}v1`;
+const CACHE_NAME = `${CACHE_PREFIX}v2`;
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', event => {
@@ -22,7 +22,8 @@ self.addEventListener('fetch', event => {
 
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request).catch(async () => {
-      const cached = await caches.match('/index.html');
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match('/index.html');
       if (!cached) throw new Error('Offline app shell unavailable');
       return cached;
     }));
@@ -36,7 +37,8 @@ self.addEventListener('fetch', event => {
     }
     return response;
   }).catch(async () => {
-    const cached = await caches.match(request);
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
     if (!cached) throw new Error('Offline static asset unavailable');
     return cached;
   }));
