@@ -23,10 +23,10 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: package.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        run: npm install --ignore-scripts
+      - name: Deterministic dependency install
+        run: npm ci --ignore-scripts
 
       - name: High-severity dependency audit
         run: npm audit --audit-level=high
