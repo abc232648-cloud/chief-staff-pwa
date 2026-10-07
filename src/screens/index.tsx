@@ -1,35 +1,9 @@
 import { AlertTriangle, Camera, CheckCircle2, FileWarning, ShieldAlert, Users } from 'lucide-react';
 import type { StaffIdentity } from '../types/capabilities';
 export { TodayScreen } from '../features/today/TodayScreen';
+export { TasksScreen } from '../features/tasks/TasksScreen';
 
 interface ScreenProps { identity: StaffIdentity; }
-
-export function TasksScreen({ identity }: ScreenProps) {
-  return (
-    <div className="screen-stack">
-      <section className="card hero">
-        <div className="eyebrow">Tasks</div>
-        <h1>{identity.role === 'worker' ? 'My tasks' : identity.role === 'supervisor' ? 'Team tasks' : 'Farm task board'}</h1>
-        <p className="muted">S6 will connect the Farm work ledger and exact task lifecycle. No placeholder task totals are shown in production.</p>
-      </section>
-      {identity.isSimulated ? (
-        <section className="card">
-          <div className="provenance-chip mock_isolated">DEVELOPMENT FIXTURE</div>
-          <div className="placeholder-list">
-            {['Development task — feed round', 'Development task — check water line', 'Development task — inspect brooder'].map(task => (
-              <div className="placeholder-row" key={task}>
-                <strong>{task}</strong>
-                <p className="muted" style={{ margin: '5px 0 0' }}>Fixture only · not Chief task state</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : (
-        <section className="card"><p className="muted" style={{ marginBottom: 0 }}>Task workflow is not connected yet. Nothing is being inferred from the Today brief.</p></section>
-      )}
-    </div>
-  );
-}
 
 export function ReportScreen() {
   return (
