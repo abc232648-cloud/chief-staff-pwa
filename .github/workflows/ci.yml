@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -47,4 +47,5 @@ jobs:
         run: npm run release:smoke
 
       - name: Real browser render smoke
+        timeout-minutes: 1
         run: npm run browser:smoke
