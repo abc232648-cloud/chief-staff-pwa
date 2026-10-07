@@ -11,7 +11,10 @@ const files = [
   'src/types/capabilities.ts',
   'src/design/tokens.ts',
   'src/screens/index.tsx',
-  'src/components/AppHeader.tsx'
+  'src/components/AppHeader.tsx',
+  'src/auth/AuthContext.tsx',
+  'src/auth/authApi.ts',
+  'src/auth/LoginScreen.tsx'
 ];
 
 const combined = files.map(read).join('\n');
@@ -36,8 +39,13 @@ const devMode = read('src/config/devMode.ts');
 if (!/VITE_CHIEF_STAFF_DEV_MODE\s*===\s*['"]true['"]/.test(devMode)) failures.push('DEV mode must be build-environment controlled.');
 if (/location\.search|URLSearchParams|localStorage|getItem\(|sessionStorage/.test(devMode)) failures.push('DEV mode must not be browser-enableable.');
 
-const app = read('src/App.tsx');
-if (!/if \(!isDevMode\) return <ProductionAuthBoundary/.test(app)) failures.push('Production must fail closed before S3 auth exists.');
+const auth = read('src/auth/AuthContext.tsx');
+const authApi = read('src/auth/authApi.ts');
+if (/localStorage|sessionStorage|indexedDB/i.test(auth + authApi)) failures.push('Authentication secrets/session state must not be browser-persisted.');
+if (!/credentials:\s*['"]include['"]/.test(authApi)) failures.push('Chief cookie session must use credentials: include.');
+if (!/cache:\s*['"]no-store['"]/.test(authApi)) failures.push('Auth requests must use no-store.');
+if (!auth.includes("principal.role === 'Owner' || principal.role === 'Administrator'")) failures.push('Owner/Administrator identities must not be mapped into Staff roles.');
+if (!auth.includes("farm.farm_role === 'GENERAL_MANAGER'") || !auth.includes("farm.farm_role === 'SUPERVISOR'")) failures.push('Production Staff role must derive from authoritative Farm role.');
 
 if (failures.length) {
   console.error(failures.join('\n'));

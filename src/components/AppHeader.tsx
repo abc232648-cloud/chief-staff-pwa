@@ -1,15 +1,13 @@
-import { ShieldCheck, UserRound } from 'lucide-react';
-import type { StaffIdentity, StaffRole } from '../types/capabilities';
-
-interface AppHeaderProps {
-  identity: StaffIdentity;
-  isDevMode: boolean;
-  onDevRoleChange: (role: StaffRole) => void;
-}
+import { LogOut, ShieldCheck, UserRound } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import type { StaffRole } from '../types/capabilities';
 
 const ROLES: StaffRole[] = ['worker', 'supervisor', 'manager'];
 
-export function AppHeader({ identity, isDevMode, onDevRoleChange }: AppHeaderProps) {
+export function AppHeader() {
+  const { identity, isDevMode, setDevRole, logout } = useAuth();
+  if (!identity) return null;
+
   return (
     <>
       {isDevMode && (
@@ -26,8 +24,15 @@ export function AppHeader({ identity, isDevMode, onDevRoleChange }: AppHeaderPro
               <div className="brand-subtitle">Field Operations</div>
             </div>
           </div>
-          <div className="role-pill" title="Current development role">
-            <UserRound size={14} aria-hidden="true" /> {identity.role}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="role-pill" title="Current Staff role">
+              <UserRound size={14} aria-hidden="true" /> {identity.role}
+            </div>
+            {!isDevMode && (
+              <button className="icon-action" type="button" aria-label="Sign out of Chief" onClick={() => void logout()}>
+                <LogOut size={17} aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
         {isDevMode && (
@@ -38,7 +43,7 @@ export function AppHeader({ identity, isDevMode, onDevRoleChange }: AppHeaderPro
                   key={role}
                   type="button"
                   aria-pressed={identity.role === role}
-                  onClick={() => onDevRoleChange(role)}
+                  onClick={() => setDevRole(role)}
                 >
                   {role}
                 </button>

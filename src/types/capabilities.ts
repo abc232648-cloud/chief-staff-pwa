@@ -35,6 +35,10 @@ export interface StaffIdentity {
   staffNumber?: string;
   displayName: string;
   role: StaffRole;
+  /**
+   * Presentation capability projection used to shape the client UI.
+   * Chief backend authorization remains mandatory for every protected request.
+   */
   capabilities: readonly StaffCapability[];
   farmId?: string;
   assignedAreaIds: readonly string[];
@@ -42,7 +46,7 @@ export interface StaffIdentity {
   isSimulated: boolean;
 }
 
-export const DEV_ROLE_CAPABILITIES: Readonly<Record<StaffRole, readonly StaffCapability[]>> = {
+export const ROLE_PRESENTATION_CAPABILITIES: Readonly<Record<StaffRole, readonly StaffCapability[]>> = {
   worker: [
     'tasks.read.own',
     'tasks.acknowledge.own',

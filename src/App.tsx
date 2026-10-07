@@ -1,52 +1,59 @@
-import { useMemo, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppHeader } from './components/AppHeader';
 import { BottomNav } from './components/BottomNav';
-import { isChiefStaffDevMode } from './config/devMode';
+import { LoginScreen } from './auth/LoginScreen';
+import { useAuth } from './auth/AuthContext';
 import { MoreScreen, ReportScreen, TasksScreen, TeamScreen, TodayScreen } from './screens';
-import { DEV_ROLE_CAPABILITIES, type StaffIdentity, type StaffRole } from './types/capabilities';
 
-function buildDevIdentity(role: StaffRole): StaffIdentity {
-  return {
-    userId: `dev-${role}-fixture`,
-    staffNumber: `DEV-${role.toUpperCase()}`,
-    displayName: role === 'worker' ? 'Development Worker' : role === 'supervisor' ? 'Development Supervisor' : 'Development Manager',
-    role,
-    capabilities: DEV_ROLE_CAPABILITIES[role],
-    farmId: 'dev-farm-fixture',
-    assignedAreaIds: role === 'worker' ? ['dev-area-poultry-1'] : ['dev-area-poultry-1', 'dev-area-poultry-2'],
-    supervisorId: role === 'worker' ? 'dev-supervisor-fixture' : undefined,
-    isSimulated: true
-  };
-}
-
-function ProductionAuthBoundary() {
+function StatusBoundary({ title, message, retry }: { title: string; message: string; retry?: () => void }) {
   return (
     <main className="production-lock">
       <section className="card">
         <div className="eyebrow">CHIEF Staff</div>
-        <h1>Authentication required</h1>
-        <p className="muted">
-          Production staff authentication is not connected yet. No development identity or operational fixture is substituted in production.
-        </p>
-        <div className="placeholder-row">
-          S3 will connect Chief-issued identity, session handling, organizational scope and backend-enforced capabilities.
-        </div>
+        <h1>{title}</h1>
+        <p className="muted">{message}</p>
+        {retry && <button className="secondary-action" type="button" onClick={retry}>Retry Chief</button>}
       </section>
     </main>
   );
 }
 
 export default function App() {
-  const isDevMode = isChiefStaffDevMode();
-  const [devRole, setDevRole] = useState<StaffRole>('worker');
-  const identity = useMemo(() => buildDevIdentity(devRole), [devRole]);
+  const { status, identity, error, refresh } = useAuth();
 
-  if (!isDevMode) return <ProductionAuthBoundary />;
+  if (status === 'checking') {
+    return <StatusBoundary title="Checking Chief session" message="Confirming authenticated identity and Farm role…" />;
+  }
+
+  if (status === 'unauthenticated') return <LoginScreen />;
+
+  if (status === 'backend_unavailable') {
+    return (
+      <StatusBoundary
+        title="Chief unavailable"
+        message={error || 'Staff authentication or Farm role information could not be confirmed.'}
+        retry={() => void refresh()}
+      />
+    );
+  }
+
+  if (status === 'unsupported_role') {
+    return (
+      <StatusBoundary
+        title="Staff access unavailable"
+        message={error || 'This Chief identity is not assigned to a supported Staff Farm role. Owner/Administrator identities should use Owner Mobile.'}
+        retry={() => void refresh()}
+      />
+    );
+  }
+
+  if (!identity) {
+    return <StatusBoundary title="Identity unavailable" message="No authenticated Staff identity is available. No role has been assumed." />;
+  }
 
   return (
     <div className="app-shell">
-      <AppHeader identity={identity} isDevMode={isDevMode} onDevRoleChange={setDevRole} />
+      <AppHeader />
       <main className="app-content">
         <Routes>
           <Route path="/" element={<TodayScreen identity={identity} />} />

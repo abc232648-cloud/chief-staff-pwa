@@ -12,16 +12,49 @@ const css = read('src/index.css');
 const nav = read('src/components/BottomNav.tsx');
 const screens = read('src/screens/index.tsx');
 const architecture = read('ARCHITECTURE.md');
+const auth = read('src/auth/AuthContext.tsx');
+const authApi = read('src/auth/authApi.ts');
+const login = read('src/auth/LoginScreen.tsx');
 
-test('DEV fixtures are build-time gated and production fails closed', () => {
+test('DEV fixtures are build-time gated only', () => {
   assert.match(devMode, /VITE_CHIEF_STAFF_DEV_MODE\s*===\s*['"]true['"]/);
   assert.doesNotMatch(devMode, /location\.search|URLSearchParams|localStorage|sessionStorage/);
-  assert.match(app, /ProductionAuthBoundary/);
-  assert.match(app, /No development identity or operational fixture is substituted in production/);
+  assert.match(auth, /if \(isDevMode\)/);
 });
 
-test('Worker Supervisor Manager roles and capabilities are explicit', () => {
+test('production auth uses existing Chief same-origin cookie and CSRF contract', () => {
+  assert.match(authApi, /['"]\/api\/auth\/login['"]/);
+  assert.match(authApi, /['"]\/api\/auth\/session['"]/);
+  assert.match(authApi, /['"]\/api\/auth\/logout['"]/);
+  assert.match(authApi, /['"]\/api\/auth\/activity['"]/);
+  assert.match(authApi, /['"]\/api\/farm\/setup['"]/);
+  assert.match(authApi, /credentials:\s*['"]include['"]/);
+  assert.match(authApi, /X-Chief-CSRF/);
+  assert.doesNotMatch(auth + authApi, /localStorage|sessionStorage|indexedDB/);
+});
+
+test('Owner and Administrator are not silently converted into Staff Manager', () => {
+  assert.match(auth, /principal\.role === 'Owner' \|\| principal\.role === 'Administrator'/);
+  assert.match(app, /Owner\/Administrator identities should use Owner Mobile/);
+});
+
+test('Farm role drives production Staff role', () => {
+  assert.match(auth, /farm\.farm_role === 'GENERAL_MANAGER'/);
+  assert.match(auth, /farm\.farm_role === 'SUPERVISOR'/);
+  assert.match(auth, /'manager'/);
+  assert.match(auth, /'supervisor'/);
+  assert.match(auth, /'worker'/);
+});
+
+test('login form never claims browser credential persistence', () => {
+  assert.match(login, /Passwords and session cookies are not stored by this PWA/);
+  assert.match(login, /autoComplete="current-password"/);
+  assert.doesNotMatch(login, /localStorage|sessionStorage/);
+});
+
+test('Worker Supervisor Manager roles and presentation capabilities are explicit', () => {
   assert.match(capabilities, /'worker' \| 'supervisor' \| 'manager'/);
+  assert.match(capabilities, /Presentation capability projection/);
   for (const capability of [
     'tasks.complete.own',
     'tasks.verify.scoped',
