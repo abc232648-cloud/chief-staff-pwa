@@ -1,6 +1,38 @@
 import { chiefApiClient } from './client';
 import type { ApiResponse } from './types';
 
+/** Existing Chief Farm routes verified before S6. */
+export const farmApi = {
+  setup(signal?: AbortSignal) {
+    return chiefApiClient.get<unknown>('/api/farm/setup', signal);
+  },
+  staff(signal?: AbortSignal) {
+    return chiefApiClient.get<unknown>('/api/farm/staff', signal);
+  },
+  journal(signal?: AbortSignal) {
+    return chiefApiClient.get<unknown>('/api/farm/journal', signal);
+  },
+  labour(signal?: AbortSignal) {
+    return chiefApiClient.get<unknown>('/api/farm/labour', signal);
+  },
+  planning(signal?: AbortSignal) {
+    return chiefApiClient.get<unknown>('/api/farm/planning', signal);
+  },
+  brief(signal?: AbortSignal) {
+    return chiefApiClient.get<unknown>('/api/farm/brief', signal);
+  },
+  units(signal?: AbortSignal) {
+    return chiefApiClient.get<unknown>('/api/farm/units', signal);
+  },
+  physicalCounts(signal?: AbortSignal) {
+    return chiefApiClient.get<unknown>('/api/farm/physical-counts', signal);
+  },
+  photos(workId?: string, signal?: AbortSignal) {
+    const query = workId ? `?work_id=${encodeURIComponent(workId)}` : '';
+    return chiefApiClient.get<unknown>(`/api/farm/photos${query}`, signal);
+  }
+};
+
 export interface FarmTaskCapabilities {
   can_acknowledge: boolean;
   can_start: boolean;
@@ -71,47 +103,4 @@ export function getFarmTasks(signal?: AbortSignal): Promise<ApiResponse<FarmTask
 
 export function mutateFarmTask(command: FarmTaskMutation, signal?: AbortSignal): Promise<ApiResponse<FarmTaskMutationResult>> {
   return chiefApiClient.post<FarmTaskMutationResult>('/api/farm/tasks', command, signal);
-}
-
-export interface FarmBriefRecord {
-  date: string;
-  timezone: string;
-  scope: 'FARM' | 'SELF';
-  reporting: unknown[];
-  current_work: unknown[];
-  alerts: unknown[];
-  metrics: unknown[];
-  notice: string;
-}
-
-export function getFarmBrief(signal?: AbortSignal): Promise<ApiResponse<FarmBriefRecord>> {
-  return chiefApiClient.get<FarmBriefRecord>('/api/farm/brief', signal);
-}
-
-export function getFarmPlanning(signal?: AbortSignal) {
-  return chiefApiClient.get<unknown>('/api/farm/planning', signal);
-}
-
-export function getFarmLabour(signal?: AbortSignal) {
-  return chiefApiClient.get<unknown>('/api/farm/labour', signal);
-}
-
-export function getFarmSetup(signal?: AbortSignal) {
-  return chiefApiClient.get<unknown>('/api/farm/setup', signal);
-}
-
-export function getFarmJournal(signal?: AbortSignal) {
-  return chiefApiClient.get<unknown>('/api/farm/journal', signal);
-}
-
-export function postFarmLabour(payload: unknown, signal?: AbortSignal) {
-  return chiefApiClient.post<unknown>('/api/farm/labour', payload, signal);
-}
-
-export function postFarmJournal(payload: unknown, signal?: AbortSignal) {
-  return chiefApiClient.post<unknown>('/api/farm/journal', payload, signal);
-}
-
-export function postFarmSetup(payload: unknown, signal?: AbortSignal) {
-  return chiefApiClient.post<unknown>('/api/farm/setup', payload, signal);
 }
