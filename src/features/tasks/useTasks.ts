@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ChiefApiError, type DataProvenance } from '../../api/types';
-import { getFarmTasks, mutateFarmTask, type FarmTask, type FarmTaskMutation, type FarmTaskOverview } from '../../api/farm';
+import {
+  getFarmTasks,
+  mutateFarmTask,
+  type FarmTask,
+  type FarmTaskCreate,
+  type FarmTaskMutation,
+  type FarmTaskOverview
+} from '../../api/farm';
 import type { StaffIdentity } from '../../types/capabilities';
 import { taskFixturesFor } from './fixtures';
 
@@ -17,13 +24,13 @@ function unavailable(): TaskResourceState {
   return { data: null, provenance: 'unavailable', fetchedAt: null, error: null };
 }
 
-function eventId(): string {
+export function taskEventId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
   return `staff_${Date.now()}_${Math.random().toString(36).slice(2, 14)}`;
 }
 
 function commandFor(task: FarmTask, operation: TaskOperation, detail: string): FarmTaskMutation {
-  const base = { event_id: eventId(), task_id: task.task_id, expected_revision: task.revision };
+  const base = { event_id: taskEventId(), task_id: task.task_id, expected_revision: task.revision };
   if (operation === 'ACKNOWLEDGE' || operation === 'START') return { ...base, operation };
   if (operation === 'SUBMIT' || operation === 'VERIFY' || operation === 'REQUEST_CORRECTION') {
     return { ...base, operation, note: detail.trim() };
@@ -65,7 +72,7 @@ export function useTasks(identity: StaffIdentity) {
 
   const refresh = useCallback(() => setGeneration(value => value + 1), []);
 
-  const act = useCallback(async (task: FarmTask, operation: TaskOperation, detail = ''): Promise<boolean> => {
+  const perform = useCallback(async (command: FarmTaskMutation, mutationKey: string): Promise<boolean> => {
     setMutationError(null);
     if (identity.isSimulated) {
       setMutationError(new ChiefApiError({
@@ -74,9 +81,15 @@ export function useTasks(identity: StaffIdentity) {
       }));
       return false;
     }
-    setMutatingTaskId(task.task_id);
+    setMutatingTaskId(mutationKey);
     try {
-      await mutateFarmTask(commandFor(task, operation, detail));
+      const response = await mutateFarmTask(command);
+      if (!['RECORDED', 'ALREADY_RECORDED'].includes(response.data.status) || !response.data.revision) {
+        throw new ChiefApiError({
+          message: 'Chief did not confirm a valid task event receipt.',
+          origin: 'protocol', code: 'UNCONFIRMED_TASK_EVENT', details: response.data
+        });
+      }
       refresh();
       return true;
     } catch (cause) {
@@ -90,5 +103,25 @@ export function useTasks(identity: StaffIdentity) {
     }
   }, [identity.isSimulated, refresh]);
 
-  return { ...state, refresh, act, mutatingTaskId, mutationError };
+  const act = useCallback((task: FarmTask, operation: TaskOperation, detail = '') => {
+    return perform(commandFor(task, operation, detail), task.task_id);
+  }, [perform]);
+
+  const create = useCallback((command: FarmTaskCreate) => {
+    return perform(command, 'CREATE');
+  }, [perform]);
+
+  const reassign = useCallback((task: FarmTask, assignedTo: string, supervisorId: string | null, reason: string) => {
+    return perform({
+      event_id: taskEventId(),
+      operation: 'REASSIGN',
+      task_id: task.task_id,
+      expected_revision: task.revision,
+      assigned_to: assignedTo,
+      supervisor_id: supervisorId,
+      reason: reason.trim()
+    }, task.task_id);
+  }, [perform]);
+
+  return { ...state, refresh, act, create, reassign, mutatingTaskId, mutationError };
 }
