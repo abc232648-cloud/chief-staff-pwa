@@ -1,13 +1,52 @@
 import { chiefApiClient } from './client';
 import type { ApiResponse } from './types';
 
-/** Existing Chief Farm routes verified before S6. */
+export interface FarmTeamMember {
+  user_id: string;
+  username: string;
+  chief_role: string;
+  farm_role: 'GENERAL_MANAGER' | 'SUPERVISOR' | 'WORKER';
+  enabled: true;
+  assigned_task_count: number;
+  active_task_count: number;
+  awaiting_verification_count: number;
+  needs_correction_count: number;
+  escalated_task_count: number;
+  overdue_task_count: number;
+  attendance_status: 'NOT_CONNECTED';
+}
+
+export interface FarmTeamOverview {
+  farm_role: 'OWNER' | 'GENERAL_MANAGER' | 'SUPERVISOR' | 'WORKER';
+  scope: 'FARM_DIRECTORY' | 'SUPERVISED_TASK_ASSIGNMENTS' | 'SELF';
+  scope_source: string;
+  members: FarmTeamMember[];
+  member_count: number;
+  verification_task_ids: string[];
+  verification_count: number;
+  attendance_available: false;
+  notice: string;
+}
+
+export interface FarmStaffOverview {
+  items: unknown[];
+  can_manage: boolean;
+  assignees: Array<{ id: string; username: string; farm_role: string }>;
+  team: FarmTeamOverview;
+  timezone: string;
+  daily_report_schedule: unknown;
+  external_notifications: string;
+  open_count: number;
+  overdue_count: number;
+}
+
+/** Existing Chief Farm routes verified before S6/S8. */
 export const farmApi = {
   setup(signal?: AbortSignal) {
     return chiefApiClient.get<unknown>('/api/farm/setup', signal);
   },
   staff(signal?: AbortSignal) {
-    return chiefApiClient.get<unknown>('/api/farm/staff', signal);
+    return chiefApiClient.get<FarmStaffOverview>('/api/farm/staff', signal);
   },
   journal(signal?: AbortSignal) {
     return chiefApiClient.get<unknown>('/api/farm/journal', signal);
