@@ -17,7 +17,10 @@ const files = [
   'src/auth/LoginScreen.tsx',
   'src/api/client.ts',
   'src/api/farm.ts',
-  'src/api/types.ts'
+  'src/api/types.ts',
+  'src/features/today/TodayScreen.tsx',
+  'src/features/today/useFarmBrief.ts',
+  'src/features/today/fixtures.ts'
 ];
 
 const combined = files.map(read).join('\n');
@@ -47,7 +50,7 @@ const authApi = read('src/auth/authApi.ts');
 if (/localStorage|sessionStorage|indexedDB/i.test(auth + authApi)) failures.push('Authentication secrets/session state must not be browser-persisted.');
 if (!/credentials:\s*['"]include['"]/.test(authApi)) failures.push('Chief cookie session must use credentials: include.');
 if (!/cache:\s*['"]no-store['"]/.test(authApi)) failures.push('Auth requests must use no-store.');
-if (!auth.includes("principal.role === 'Owner' || principal.role === 'Administrator'")) failures.push('Owner/Administrator identities must not be mapped into Staff roles.');
+if (!auth.includes("principal.role !== 'Owner'") || !auth.includes("principal.role !== 'Administrator'")) failures.push('Owner/Administrator identities must not be mapped into Staff roles.');
 if (!auth.includes("farm.farm_role === 'GENERAL_MANAGER'") || !auth.includes("farm.farm_role === 'SUPERVISOR'")) failures.push('Production Staff role must derive from authoritative Farm role.');
 
 const apiClient = read('src/api/client.ts');
@@ -55,6 +58,10 @@ if (!apiClient.includes("path.startsWith('/api/')")) failures.push('General API 
 if (!apiClient.includes("code: 'DEV_LIVE_API_BLOCKED'")) failures.push('DEV identities must be blocked from live Chief API.');
 if (!apiClient.includes("code: 'CSRF_REQUIRED'")) failures.push('Mutations must require live CSRF.');
 if (/Authorization\s*[:=]|Bearer\s/.test(apiClient)) failures.push('Staff general API client must not construct browser bearer tokens.');
+
+const todayHook = read('src/features/today/useFarmBrief.ts');
+if (!todayHook.includes("'/api/farm/brief'")) failures.push('Today must use the verified Chief Farm brief endpoint.');
+if (!todayHook.includes("provenance: 'mock_isolated'")) failures.push('DEV Today data must remain mock_isolated.');
 
 if (failures.length) {
   console.error(failures.join('\n'));
