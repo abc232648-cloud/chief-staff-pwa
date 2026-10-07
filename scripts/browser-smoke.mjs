@@ -13,22 +13,22 @@ async function waitForServer() {
 
 function chromeDump(url) {
   return new Promise((resolve, reject) => {
-    const chrome = spawn('google-chrome', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--virtual-time-budget=3000', '--dump-dom', url]);
+    const args = ['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--disable-default-apps','--disable-features=ServiceWorker,MediaRouter,OptimizationHints','--no-first-run','--no-default-browser-check','--virtual-time-budget=2500','--dump-dom',url];
+    const chrome = spawn('google-chrome', args);
     let stdout = ''; let stderr = ''; let settled = false;
+    const finish = (error = null) => {
+      if (settled) return; settled = true; clearTimeout(timer);
+      if (error) reject(error); else resolve(stdout);
+    };
     const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
       chrome.kill('SIGKILL');
-      reject(new Error('Headless Chrome render timed out after 15 seconds.'));
-    }, 15000);
+      if (stdout.includes('id="root"') && stdout.includes('CHIEF')) finish();
+      else finish(new Error(`Headless Chrome render timed out. ${stderr.slice(-1000)}`));
+    }, 10000);
     chrome.stdout.on('data', chunk => { stdout += chunk; });
     chrome.stderr.on('data', chunk => { stderr += chunk; });
-    chrome.on('error', error => { if (!settled) { settled = true; clearTimeout(timer); reject(error); } });
-    chrome.on('close', code => {
-      if (settled) return;
-      settled = true; clearTimeout(timer);
-      code === 0 ? resolve(stdout) : reject(new Error(`Chrome exited ${code}: ${stderr}`));
-    });
+    chrome.on('error', error => finish(error));
+    chrome.on('close', code => { if (code === 0) finish(); else if (!settled) finish(new Error(`Chrome exited ${code}: ${stderr.slice(-1000)}`)); });
   });
 }
 
@@ -42,6 +42,4 @@ try {
   if (!dom.includes('id="root"')) throw new Error('React root missing from browser DOM.');
   if (!dom.includes('CHIEF') || !dom.includes('Staff')) throw new Error('CHIEF Staff shell did not render in browser DOM.');
   console.log('CHIEF Staff headless-browser release smoke passed.');
-} finally {
-  preview.kill('SIGTERM');
-}
+} finally { preview.kill('SIGTERM'); }
