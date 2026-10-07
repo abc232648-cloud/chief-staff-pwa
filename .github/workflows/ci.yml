@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-verify:
+    name: Build & Verify (Node 24 LTS)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js LTS
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: High-severity dependency audit
+        run: npm audit --audit-level=high
+
+      - name: Source safety lint
+        run: npm run lint
+
+      - name: Strict TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Architecture invariant tests
+        run: npm test
+
+      - name: Production Vite build
+        run: npm run build
