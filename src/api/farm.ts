@@ -40,7 +40,6 @@ export interface FarmStaffOverview {
   overdue_count: number;
 }
 
-/** Existing Chief Farm routes verified before S6/S8. */
 export const farmApi = {
   setup(signal?: AbortSignal) {
     return chiefApiClient.get<unknown>('/api/farm/setup', signal);
@@ -126,10 +125,28 @@ export interface FarmTaskOverview {
   notice: string;
 }
 
+export interface FarmTaskCreate {
+  event_id: string;
+  operation: 'CREATE';
+  task_id: string;
+  title: string;
+  instructions: string;
+  location: string;
+  entity_id: string | null;
+  assigned_to: string;
+  supervisor_id: string | null;
+  due_at: string;
+  priority: 'ROUTINE' | 'HIGH' | 'URGENT';
+  evidence_required: Array<'NONE' | 'NOTE' | 'PHOTO' | 'MEASUREMENT' | 'CHECKLIST'>;
+  sop_ref: string | null;
+}
+
 export type FarmTaskMutation =
+  | FarmTaskCreate
   | { event_id: string; operation: 'ACKNOWLEDGE' | 'START'; task_id: string; expected_revision: string }
   | { event_id: string; operation: 'SUBMIT' | 'VERIFY' | 'REQUEST_CORRECTION'; task_id: string; expected_revision: string; note: string }
-  | { event_id: string; operation: 'ESCALATE' | 'CANCEL'; task_id: string; expected_revision: string; reason: string };
+  | { event_id: string; operation: 'ESCALATE' | 'CANCEL'; task_id: string; expected_revision: string; reason: string }
+  | { event_id: string; operation: 'REASSIGN'; task_id: string; expected_revision: string; assigned_to: string; supervisor_id: string | null; reason: string };
 
 export interface FarmTaskMutationResult {
   status: 'RECORDED' | 'ALREADY_RECORDED';
