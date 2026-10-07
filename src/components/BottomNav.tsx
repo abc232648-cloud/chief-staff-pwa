@@ -3,10 +3,10 @@ import { NavLink } from 'react-router-dom';
 
 const items = [
   { to: '/', label: 'Today', icon: Home, end: true },
-  { to: '/tasks', label: 'Tasks', icon: ClipboardList },
-  { to: '/report', label: 'Report', icon: FilePlus2 },
-  { to: '/team', label: 'Team', icon: Users },
-  { to: '/more', label: 'More', icon: MoreHorizontal }
+  { to: '/tasks', label: 'Tasks', icon: ClipboardList, end: false },
+  { to: '/report', label: 'Report', icon: FilePlus2, end: false },
+  { to: '/team', label: 'Team', icon: Users, end: false },
+  { to: '/more', label: 'More', icon: MoreHorizontal, end: false }
 ] as const;
 
 export function BottomNav() {
