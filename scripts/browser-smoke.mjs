@@ -13,12 +13,22 @@ async function waitForServer() {
 
 function chromeDump(url) {
   return new Promise((resolve, reject) => {
-    const chrome = spawn('google-chrome', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--dump-dom', url]);
-    let stdout = ''; let stderr = '';
+    const chrome = spawn('google-chrome', ['--headless', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--virtual-time-budget=3000', '--dump-dom', url]);
+    let stdout = ''; let stderr = ''; let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      chrome.kill('SIGKILL');
+      reject(new Error('Headless Chrome render timed out after 15 seconds.'));
+    }, 15000);
     chrome.stdout.on('data', chunk => { stdout += chunk; });
     chrome.stderr.on('data', chunk => { stderr += chunk; });
-    chrome.on('error', reject);
-    chrome.on('close', code => code === 0 ? resolve(stdout) : reject(new Error(`Chrome exited ${code}: ${stderr}`)));
+    chrome.on('error', error => { if (!settled) { settled = true; clearTimeout(timer); reject(error); } });
+    chrome.on('close', code => {
+      if (settled) return;
+      settled = true; clearTimeout(timer);
+      code === 0 ? resolve(stdout) : reject(new Error(`Chrome exited ${code}: ${stderr}`));
+    });
   });
 }
 
