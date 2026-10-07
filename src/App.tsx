@@ -58,7 +58,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<TodayScreen identity={identity} />} />
           <Route path="/tasks" element={<TasksScreen identity={identity} />} />
-          <Route path="/report" element={<ReportScreen />} />
+          <Route path="/report" element={<ReportScreen identity={identity} />} />
           <Route path="/team" element={<TeamScreen identity={identity} />} />
           <Route path="/more" element={<MoreScreen identity={identity} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
