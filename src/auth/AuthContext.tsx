@@ -59,12 +59,17 @@ function buildDevIdentity(role: StaffRole): AuthenticatedStaffIdentity {
   };
 }
 
+function principalCanUseStaff(principal: BackendPrincipal): boolean {
+  return principal.role !== 'Owner'
+    && principal.role !== 'Administrator'
+    && principal.domains.some(domain => domain === 'farming' || domain === '*');
+}
+
 function mapProductionIdentity(
   principal: BackendPrincipal,
   farm: FarmSetupOverview
 ): AuthenticatedStaffIdentity | null {
-  if (principal.role === 'Owner' || principal.role === 'Administrator') return null;
-  if (!principal.domains.some(domain => domain === 'farming' || domain === '*')) return null;
+  if (!principalCanUseStaff(principal)) return null;
   if (farm.farm_role === 'OWNER') return null;
 
   const role: StaffRole =
@@ -120,13 +125,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const session = await authApi.session();
+      if (!principalCanUseStaff(session.principal)) {
+        setIdentity(null);
+        setCsrf(null);
+        setStatus('unsupported_role');
+        setError('This authenticated Chief identity is not assigned to the Staff Farm surface.');
+        return;
+      }
+
       const farm = await authApi.farmSetup();
       const mapped = mapProductionIdentity(session.principal, farm);
       if (!mapped) {
         setIdentity(null);
         setCsrf(null);
         setStatus('unsupported_role');
-        setError('This authenticated Chief identity is not assigned to a supported Staff Farm role.');
+        setError('This authenticated Chief identity does not resolve to a supported Worker, Supervisor or General Manager Farm role.');
         return;
       }
       setIdentity(mapped);
@@ -138,12 +151,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cause instanceof AuthApiError && cause.status === 401) {
         setStatus('unauthenticated');
         setError(null);
-      } else if (cause instanceof AuthApiError && cause.status === 403) {
-        setStatus('unsupported_role');
-        setError('Chief denied access to the Farm Staff surface for this identity.');
       } else {
         setStatus('backend_unavailable');
-        setError('Chief Staff authentication or Farm role information is currently unavailable.');
+        setError(cause instanceof AuthApiError && cause.status === 403
+          ? 'Chief Farm Staff access is currently unavailable or denied. No Staff role has been assumed.'
+          : 'Chief Staff authentication or Farm role information is currently unavailable.');
       }
     }
   }, [devRole, isDevMode]);
