@@ -1,12 +1,22 @@
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { StaffIdentity } from '../types/capabilities';
 export { TodayScreen } from '../features/today/TodayScreen';
-export { TasksScreen } from '../features/tasks/TasksScreen';
+import { TasksScreen as TaskBoardScreen } from '../features/tasks/TasksScreen';
+import { SopPanel } from '../features/sops/SopPanel';
 import { ReportScreen as FieldReportScreen } from '../features/reports/ReportScreen';
 import { IncidentEmergencyPanel } from '../features/incidents/IncidentEmergencyPanel';
 export { TeamScreen } from '../features/team/TeamScreen';
 
 interface ScreenProps { identity: StaffIdentity; }
+
+export function TasksScreen({ identity }: ScreenProps) {
+  return (
+    <div className="screen-stack">
+      <TaskBoardScreen identity={identity} />
+      <SopPanel identity={identity} />
+    </div>
+  );
+}
 
 export function ReportScreen({ identity }: ScreenProps) {
   return (
