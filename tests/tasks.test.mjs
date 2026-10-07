@@ -7,7 +7,7 @@ const farm = read('src/api/farm.ts');
 const hook = read('src/features/tasks/useTasks.ts');
 const screen = read('src/features/tasks/TasksScreen.tsx');
 const fixtures = read('src/features/tasks/fixtures.ts');
-const legacyScreens = read('src/screens/index.tsx');
+const screens = read('src/screens/index.tsx');
 
 test('S6 reads and mutates only the authoritative Chief Farm task endpoint', () => {
   assert.match(farm, /getFarmTasks[\s\S]*?['"]\/api\/farm\/tasks['"]/);
@@ -18,9 +18,7 @@ test('S6 reads and mutates only the authoritative Chief Farm task endpoint', () 
 });
 
 test('task actions use server-returned per-task capabilities instead of role guesses', () => {
-  for (const capability of [
-    'can_acknowledge','can_start','can_submit','can_verify','can_request_correction','can_escalate','can_cancel'
-  ]) assert.match(screen, new RegExp(`task\\.capabilities\\.${capability}`));
+  for (const capability of ['can_acknowledge','can_start','can_submit','can_verify','can_request_correction','can_escalate','can_cancel']) assert.match(screen, new RegExp(`task\\.capabilities\\.${capability}`));
   assert.doesNotMatch(screen, /identity\.role\s*===\s*['"]worker['"][\s\S]{0,160}(can_|ACKNOWLEDGE|START|SUBMIT)/);
   assert.doesNotMatch(screen, /identity\.role\s*===\s*['"]supervisor['"][\s\S]{0,160}(VERIFY|REQUEST_CORRECTION)/);
 });
@@ -48,8 +46,11 @@ test('server task lifecycle excludes completed_locally from the Staff API contra
   assert.match(farm, /ESCALATED/);
 });
 
-test('legacy placeholder Tasks screen is removed', () => {
-  assert.match(legacyScreens, /export \{ TasksScreen \} from ['"]\.\.\/features\/tasks\/TasksScreen['"]/);
-  assert.doesNotMatch(legacyScreens, /S6 will connect the Farm work ledger/);
-  assert.doesNotMatch(legacyScreens, /Task workflow is not connected yet/);
+test('Tasks tab composes authoritative task board with assigned SOP runbooks', () => {
+  assert.match(screens, /TasksScreen as TaskBoardScreen/);
+  assert.match(screens, /SopPanel/);
+  assert.match(screens, /<TaskBoardScreen identity=\{identity\}/);
+  assert.match(screens, /<SopPanel identity=\{identity\}/);
+  assert.doesNotMatch(screens, /S6 will connect the Farm work ledger/);
+  assert.doesNotMatch(screens, /Task workflow is not connected yet/);
 });
