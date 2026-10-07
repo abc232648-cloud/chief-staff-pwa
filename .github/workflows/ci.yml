@@ -37,8 +37,14 @@ jobs:
       - name: Strict TypeScript typecheck
         run: npm run typecheck
 
-      - name: Architecture invariant tests
+      - name: Architecture and safety invariant tests
         run: npm test
 
       - name: Production Vite build
         run: npm run build
+
+      - name: Production release smoke
+        run: npm run release:smoke
+
+      - name: Real browser render smoke
+        run: npm run browser:smoke

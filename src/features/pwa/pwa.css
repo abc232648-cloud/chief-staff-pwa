@@ -1,0 +1,1 @@
+.pwa-panel{display:grid;gap:10px}.pwa-panel button{width:100%}.pwa-status,.pwa-ios{display:flex;align-items:flex-start;gap:8px;padding:10px 11px;border-radius:12px;border:1px solid rgba(52,211,153,.18);background:rgba(16,185,129,.06);color:#a7f3d0;font-size:.76rem;line-height:1.4}.pwa-ios svg{flex:none;color:#34d399}
