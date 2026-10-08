@@ -49,3 +49,7 @@ jobs:
       - name: Real browser render smoke
         timeout-minutes: 1
         run: npm run browser:smoke
+
+      - name: Real browser offline restart and reconnect acceptance
+        timeout-minutes: 1
+        run: npm run offline:acceptance
