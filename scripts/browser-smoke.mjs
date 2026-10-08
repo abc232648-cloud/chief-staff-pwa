@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process';
 
 const preview = spawn('./node_modules/.bin/vite', ['preview', '--host', '127.0.0.1', '--port', '4174'], { stdio: 'ignore' });
-const base = 'http://127.0.0.1:4174';
+const origin = 'http://127.0.0.1:4174';
+const base = `${origin}/staff/`;
 let chrome = null;
 
 async function waitFor(url, attempts = 50) {
@@ -13,7 +14,7 @@ async function waitFor(url, attempts = 50) {
 }
 
 async function renderedBodyText() {
-  chrome = spawn('google-chrome', ['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--disable-default-apps','--disable-features=ServiceWorker,MediaRouter,OptimizationHints','--no-first-run','--no-default-browser-check','--remote-debugging-address=127.0.0.1','--remote-debugging-port=9222','--user-data-dir=/tmp/chief-staff-chrome',`${base}/#/more`], { stdio: 'ignore' });
+  chrome = spawn('google-chrome', ['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--disable-default-apps','--disable-features=ServiceWorker,MediaRouter,OptimizationHints','--no-first-run','--no-default-browser-check','--remote-debugging-address=127.0.0.1','--remote-debugging-port=9222','--user-data-dir=/tmp/chief-staff-chrome',`${base}#/more`], { stdio: 'ignore' });
   await waitFor('http://127.0.0.1:9222/json/list');
   const pages = await (await fetch('http://127.0.0.1:9222/json/list')).json();
   const page = pages.find(entry => entry.type === 'page');
@@ -42,10 +43,12 @@ async function renderedBodyText() {
 
 try {
   await waitFor(base);
-  for (const path of ['/', '/#/tasks', '/#/report', '/#/team', '/#/more']) { const response = await fetch(`${base}${path}`); if (!response.ok) throw new Error(`Preview HTTP ${response.status} for ${path}`); }
+  for (const path of ['', '#/tasks', '#/report', '#/team', '#/more']) { const response = await fetch(`${base}${path}`); if (!response.ok) throw new Error(`Preview HTTP ${response.status} for ${base}${path}`); }
+  const rootResponse = await fetch(origin, { redirect: 'manual' });
+  if (rootResponse.status === 200 && (await rootResponse.text()).includes('CHIEF Staff Operations')) throw new Error('Staff production bundle is unexpectedly served at the shared origin root.');
   const text = await renderedBodyText();
   if (!text.includes('CHIEF') || !text.includes('Staff')) throw new Error(`CHIEF Staff shell did not render in Chrome. Body: ${text.slice(0, 500)}`);
-  console.log('CHIEF Staff real-browser render smoke passed through Chrome DevTools.');
+  console.log('CHIEF Staff /staff/ real-browser render smoke passed through Chrome DevTools.');
 } finally {
   if (chrome) chrome.kill('SIGKILL');
   preview.kill('SIGTERM');
