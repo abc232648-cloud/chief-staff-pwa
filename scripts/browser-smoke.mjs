@@ -35,9 +35,8 @@ try {
     throw new Error('Staff production bundle is unexpectedly served at the shared origin root.');
   }
   const html = renderedDom();
-  if (!/id="root"[^>]*>\s*[^<\s]/s.test(html) && !html.includes('CHIEF Staff')) {
-    throw new Error(`CHIEF Staff shell did not render in Chrome. DOM: ${html.slice(0, 500)}`);
-  }
+  const rootMatch = html.match(/<div\s+id="root"[^>]*>([\s\S]*?)<\/div>/);
+  if (!rootMatch || !rootMatch[1].trim()) throw new Error(`Chrome loaded the shell but React did not render into #root. DOM: ${html.slice(0, 500)}`);
   if (!html.includes('CHIEF') || !html.includes('Staff')) throw new Error('Rendered Staff DOM is missing application identity.');
   console.log('CHIEF Staff /staff/ real-browser DOM smoke passed.');
 } finally {
