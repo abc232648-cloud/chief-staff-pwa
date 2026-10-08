@@ -19,7 +19,7 @@ The frozen S1–S16 client sequence is implemented to the repository/release-rea
 - S9 Manager operations
 - S10 incident and emergency evidence reporting
 - S11 assigned SOP/runbook surface
-- S12 user/environment-scoped IndexedDB queue and exact report/incident replay
+- S12 user/environment-scoped IndexedDB queue, exact report/incident replay, and authoritative task-photo upload/reconciliation
 - S13 installable PWA, static-shell service worker and controlled update UX
 - S14 security/privacy/accessibility/deployment boundary
 - S15 architecture/safety invariant tests
@@ -27,9 +27,13 @@ The frozen S1–S16 client sequence is implemented to the repository/release-rea
 
 Production behavior remains fail-closed when a Chief endpoint is not provisioned. The Staff client never substitutes fixtures or local state for Chief authority.
 
-### External/backend dependencies still required
+### Chief backend contract status
 
-Some client surfaces intentionally remain unavailable until Chief exposes the matching authoritative contract. In particular, the incident/SOP routes and media-upload reconciliation require backend implementation/verification before they can become live operational features. Media is not silently called uploaded or synchronized.
+The Staff client is wired to Chief's current authoritative Farm contracts for authentication/session, setup/role scope, tasks, worker reports, staff/team visibility, incidents/emergencies, assigned SOPs and task-photo evidence.
+
+Task photos are converted on-device to bounded metadata-free PNG, stored in the identity-scoped device queue when necessary, uploaded through `/api/farm/photos`, and removed locally only after an independent Chief photo listing confirms the exact photo ID, work ID, SHA-256 and byte count. A successful upload response alone does not clear local evidence.
+
+Production hosting, production enablement of the Chief Farm API, cross-client end-to-end acceptance and real-device deployment remain separate release gates; this repository does not represent those external gates as complete.
 
 ## Development
 
