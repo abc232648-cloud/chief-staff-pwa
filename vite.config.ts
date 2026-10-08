@@ -9,6 +9,7 @@ const securityHeaders = {
 };
 
 export default defineConfig({
+  base: '/staff/',
   plugins: [react()],
   server: {
     port: 3001,

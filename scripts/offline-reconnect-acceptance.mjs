@@ -5,7 +5,9 @@ const vite = spawn('./node_modules/.bin/vite', ['--host', '127.0.0.1', '--port',
   stdio: 'ignore',
   env: { ...process.env, VITE_CHIEF_STAFF_DEV_MODE: 'true' }
 });
-const base = 'http://127.0.0.1:4175';
+const origin = 'http://127.0.0.1:4175';
+const base = `${origin}/staff/`;
+const modulePath = '/staff/src/storage/offlineStore.ts';
 const profile = '/tmp/chief-staff-offline-acceptance';
 const debugPort = 9224;
 let chrome = null;
@@ -29,7 +31,7 @@ async function connectChrome() {
     '--disable-background-networking', '--disable-component-update', '--disable-default-apps',
     '--disable-features=MediaRouter,OptimizationHints', '--no-first-run', '--no-default-browser-check',
     `--remote-debugging-address=127.0.0.1`, `--remote-debugging-port=${debugPort}`,
-    `--user-data-dir=${profile}`, `${base}/#/more`
+    `--user-data-dir=${profile}`, `${base}#/more`
   ], { stdio: 'ignore' });
 
   await waitFor(`http://127.0.0.1:${debugPort}/json/list`);
@@ -106,7 +108,7 @@ try {
       request.onerror = () => reject(request.error);
       request.onblocked = () => reject(new Error('IndexedDB cleanup blocked'));
     });
-    const store = await import('/src/storage/offlineStore.ts');
+    const store = await import('${modulePath}');
     const identity = ${identityLiteral};
     const reportPayload = {event_id:'offline-report-event',category:'OBSERVATION',summary:'Persist me exactly'};
     const reportQueue = await store.enqueueOffline(identity, 'worker_report', reportPayload, reportPayload.event_id);
@@ -133,7 +135,7 @@ try {
   // Second browser process, same profile: verify persistence, exact payload and user isolation.
   connection = await connectChrome();
   const restored = await connection.evaluate(`(async () => {
-    const store = await import('/src/storage/offlineStore.ts');
+    const store = await import('${modulePath}');
     const identity = ${identityLiteral};
     const other = ${otherIdentityLiteral};
     const queue = await store.listOfflineQueue(identity);
@@ -166,7 +168,7 @@ try {
   // Simulate authoritative media reconciliation cleanup: queue+blob disappear atomically;
   // unrelated queued work remains until separately confirmed.
   const reconciled = await connection.evaluate(`(async () => {
-    const store = await import('/src/storage/offlineStore.ts');
+    const store = await import('${modulePath}');
     const identity = ${identityLiteral};
     const queue = await store.listOfflineQueue(identity);
     const mediaQueue = queue.find(record => record.kind === 'media_upload');
@@ -183,7 +185,7 @@ try {
     throw new Error(`Authoritative reconciliation cleanup acceptance failed: ${JSON.stringify(reconciled)}`);
   }
 
-  console.log('CHIEF Staff offline restart/reconnect IndexedDB acceptance passed in real Chrome.');
+  console.log('CHIEF Staff /staff/ offline restart/reconnect IndexedDB acceptance passed in real Chrome.');
   stopChrome(connection);
 } finally {
   if (chrome) chrome.kill('SIGKILL');

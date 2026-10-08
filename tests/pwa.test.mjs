@@ -7,21 +7,35 @@ const manifest = read('public/manifest.webmanifest');
 const register = read('src/pwa/register.ts');
 const panel = read('src/features/pwa/PwaDevicePanel.tsx');
 const html = read('index.html');
+const vite = read('vite.config.ts');
 
-test('S13 has an installable same-family manifest', () => {
+test('S13 has an installable Staff-only manifest and build base', () => {
   const parsed = JSON.parse(manifest);
   assert.equal(parsed.name, 'CHIEF Staff Operations');
   assert.equal(parsed.display, 'standalone');
   assert.equal(parsed.theme_color, '#021209');
-  assert.match(html, /rel="manifest" href="\/manifest\.webmanifest"/);
+  assert.equal(parsed.id, '/staff/');
+  assert.equal(parsed.start_url, '/staff/');
+  assert.equal(parsed.scope, '/staff/');
+  assert.ok(parsed.icons.every(icon => icon.src.startsWith('/staff/')));
+  assert.match(vite, /base:\s*['"]\/staff\/['"]/);
+  assert.match(html, /href="%BASE_URL%manifest\.webmanifest"/);
 });
 
-test('service worker bypasses API and non-GET mutations before respondWith/cache logic', () => {
+test('service worker bypasses API and anything outside Staff scope before cache logic', () => {
   const methodGuard = sw.indexOf("request.method !== 'GET'");
   const apiGuard = sw.indexOf("url.pathname.startsWith('/api/')");
+  const scopeGuard = sw.indexOf("url.pathname.startsWith(`${SCOPE_PATH}/`)");
   const respondWith = sw.indexOf('event.respondWith');
   const cachePut = sw.indexOf('cache.put(request, copy)');
-  assert.ok(methodGuard >= 0 && apiGuard >= 0 && respondWith > apiGuard && cachePut > apiGuard);
+  assert.ok(methodGuard >= 0 && apiGuard >= 0 && scopeGuard > apiGuard && respondWith > scopeGuard && cachePut > scopeGuard);
+});
+
+test('Staff service worker registration is base-derived and Staff-scoped', () => {
+  assert.match(register, /import\.meta\.env\.BASE_URL/);
+  assert.match(register, /base !== ['"]\/staff\/['"]/);
+  assert.match(register, /register\(`\$\{base\}sw\.js`, \{ scope: base \}\)/);
+  assert.doesNotMatch(register, /register\(['"]\/sw\.js['"]/);
 });
 
 test('service worker update requires an explicit user activation message', () => {

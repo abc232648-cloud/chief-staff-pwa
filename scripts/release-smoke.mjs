@@ -9,10 +9,14 @@ must('dist/icon.svg');
 const manifest = JSON.parse(manifestText);
 
 if (manifest.name !== 'CHIEF Staff Operations' || manifest.display !== 'standalone') throw new Error('Manifest identity/install mode invalid.');
-if (!index.includes('manifest.webmanifest')) throw new Error('Built HTML does not link manifest.');
+if (manifest.id !== '/staff/' || manifest.start_url !== '/staff/' || manifest.scope !== '/staff/') throw new Error('Staff manifest escaped its /staff/ deployment boundary.');
+if (!manifest.icons.every(icon => String(icon.src).startsWith('/staff/'))) throw new Error('Staff manifest contains root/cross-app icon paths.');
+if (!index.includes('/staff/manifest.webmanifest') || !index.includes('/staff/icon.svg')) throw new Error('Built HTML does not use Staff-scoped shell assets.');
+if (!index.includes('/staff/assets/')) throw new Error('Built bundle assets are not rooted under /staff/.');
 if (!index.includes('Content-Security-Policy')) throw new Error('Built HTML is missing CSP.');
 if (/fonts\.googleapis|fonts\.gstatic/.test(index)) throw new Error('External font dependency found.');
 if (!sw.includes("url.pathname.startsWith('/api/')") || !sw.includes("request.method !== 'GET'")) throw new Error('Service worker API/mutation exclusion missing.');
+if (!sw.includes('SCOPE_PATH') || !sw.includes('startsWith(`${SCOPE_PATH}/`)')) throw new Error('Service worker is not constrained to the Staff scope.');
 
 const assetDir = path.join('dist', 'assets');
 const assets = fs.existsSync(assetDir) ? fs.readdirSync(assetDir) : [];
