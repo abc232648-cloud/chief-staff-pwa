@@ -5,7 +5,9 @@ export const PWA_UPDATE_EVENT = 'chief-staff-pwa-update';
 export async function registerStaffServiceWorker(): Promise<void> {
   if (isChiefStaffDevMode() || !('serviceWorker' in navigator)) return;
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    const base = import.meta.env.BASE_URL;
+    if (base !== '/staff/') throw new Error('CHIEF Staff production base path mismatch.');
+    const registration = await navigator.serviceWorker.register(`${base}sw.js`, { scope: base });
     const announceWaiting = () => {
       if (registration.waiting) window.dispatchEvent(new CustomEvent(PWA_UPDATE_EVENT, { detail: registration }));
     };
