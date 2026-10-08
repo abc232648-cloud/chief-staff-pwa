@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { AlertTriangle, Check, CheckCircle2, Clock3, Flag, Play, RefreshCw, RotateCcw, Send, ShieldCheck } from 'lucide-react';
 import type { FarmTask } from '../../api/farm';
 import type { StaffIdentity } from '../../types/capabilities';
+import { TaskPhotoEvidence } from './TaskPhotoEvidence';
 import { useTasks, type TaskOperation } from './useTasks';
 import './tasks.css';
 
@@ -80,6 +81,8 @@ function TaskCard({ task, busy, simulated, onAction }: {
         <strong>Evidence:</strong> {task.evidence_required.join(', ').toLowerCase().replaceAll('_', ' ')}
         {task.sop_ref ? <span> · SOP: {task.sop_ref}</span> : null}
       </div>
+
+      <TaskPhotoEvidence task={task} simulated={simulated} />
 
       {task.correction_note && <div className="task-note correction"><strong>Correction requested:</strong> {task.correction_note}</div>}
       {task.escalation_reason && <div className="task-note escalation"><strong>Escalation:</strong> {task.escalation_reason}</div>}
@@ -202,7 +205,7 @@ export function TasksScreen({ identity }: { identity: StaffIdentity }) {
       {data.can_create && identity.role === 'manager' && (
         <section className="card truth-note">
           <strong>Assignment management</strong>
-          <p className="muted small-text" style={{ marginBottom: 0 }}>Chief permits this account to create field tasks. Staff assignment controls will be connected with the authoritative Staff directory in S8 rather than accepting typed or invented worker identities here.</p>
+          <p className="muted small-text" style={{ marginBottom: 0 }}>Chief permits this account to create field tasks. Staff assignment controls are populated only from the authoritative Chief Staff directory; typed or invented worker identities are not accepted.</p>
         </section>
       )}
 
