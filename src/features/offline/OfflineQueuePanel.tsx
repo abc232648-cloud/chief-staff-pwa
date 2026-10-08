@@ -22,7 +22,7 @@ export function OfflineQueuePanel() {
           </article>
         ))}</div>
       )}
-      <p className="muted tiny-text">Task state-changing commands remain live-only because their expected Chief revision may change while the device is offline. Media upload replay remains blocked until the authoritative media adapter is connected.</p>
+      <p className="muted tiny-text">Task state-changing commands remain live-only because their expected Chief revision may change while the device is offline. Queued photos are deleted only after Chief’s independent work-photo listing confirms the exact photo ID, work ID, SHA-256 and byte count.</p>
     </section>
   );
 }

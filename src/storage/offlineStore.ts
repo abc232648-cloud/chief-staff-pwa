@@ -30,9 +30,12 @@ export interface OfflineMediaRecord {
   ownerUserId: string;
   environment: 'prod' | 'dev';
   blob: Blob;
-  mimeType: string;
+  mimeType: 'image/png';
   createdAt: number;
-  purpose: string;
+  purpose: 'task_photo';
+  workId: string;
+  sha256: string;
+  bytes: number;
 }
 
 export function storageNamespace(identity: StaffIdentity): string {
@@ -155,5 +158,55 @@ export async function saveOfflineMedia(identity: StaffIdentity, record: Omit<Off
     transaction.objectStore(MEDIA_STORE).put(full);
     await txComplete(transaction);
     return full;
+  } finally { db.close(); }
+}
+
+export async function getOfflineMedia(identity: StaffIdentity, id: string): Promise<OfflineMediaRecord> {
+  const namespace = storageNamespace(identity);
+  const db = await openDb();
+  try {
+    const transaction = db.transaction(MEDIA_STORE, 'readonly');
+    const record = await requestValue(transaction.objectStore(MEDIA_STORE).get(id)) as OfflineMediaRecord | undefined;
+    await txComplete(transaction);
+    if (!record || record.namespace !== namespace || record.ownerUserId !== identity.userId) {
+      throw new Error('Offline media ownership check failed.');
+    }
+    return record;
+  } finally { db.close(); }
+}
+
+export async function removeOfflineMedia(identity: StaffIdentity, id: string): Promise<void> {
+  const namespace = storageNamespace(identity);
+  const db = await openDb();
+  try {
+    const transaction = db.transaction(MEDIA_STORE, 'readwrite');
+    const store = transaction.objectStore(MEDIA_STORE);
+    const record = await requestValue(store.get(id)) as OfflineMediaRecord | undefined;
+    if (!record || record.namespace !== namespace || record.ownerUserId !== identity.userId) {
+      transaction.abort();
+      throw new Error('Offline media ownership check failed.');
+    }
+    store.delete(id);
+    await txComplete(transaction);
+  } finally { db.close(); }
+}
+
+export async function removeOfflineQueueAndMedia(identity: StaffIdentity, queueId: string, mediaId: string): Promise<void> {
+  const namespace = storageNamespace(identity);
+  const db = await openDb();
+  try {
+    const transaction = db.transaction([QUEUE_STORE, MEDIA_STORE], 'readwrite');
+    const queue = transaction.objectStore(QUEUE_STORE);
+    const media = transaction.objectStore(MEDIA_STORE);
+    const queueRecord = await requestValue(queue.get(queueId)) as OfflineQueueRecord | undefined;
+    const mediaRecord = await requestValue(media.get(mediaId)) as OfflineMediaRecord | undefined;
+    if (!queueRecord || queueRecord.namespace !== namespace || queueRecord.ownerUserId !== identity.userId
+      || !mediaRecord || mediaRecord.namespace !== namespace || mediaRecord.ownerUserId !== identity.userId) {
+      transaction.abort();
+      throw new Error('Offline queue/media ownership check failed.');
+    }
+    queue.delete(queueId);
+    media.delete(mediaId);
+    await txComplete(transaction);
   } finally { db.close(); }
 }
