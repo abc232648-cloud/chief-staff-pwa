@@ -1,14 +1,15 @@
 {
+  "id": "/staff/",
   "name": "CHIEF Staff Operations",
   "short_name": "CHIEF Staff",
   "description": "Role-shaped farm operations client for CHIEF Staff.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/staff/",
+  "scope": "/staff/",
   "display": "standalone",
   "background_color": "#021209",
   "theme_color": "#021209",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    { "src": "/staff/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/staff/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
   ]
 }
