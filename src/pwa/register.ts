@@ -2,8 +2,19 @@ import { isChiefStaffDevMode } from '../config/devMode';
 
 export const PWA_UPDATE_EVENT = 'chief-staff-pwa-update';
 
+async function retireLegacyRootWorker(): Promise<void> {
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  for (const reg of registrations) {
+    const script = reg.active?.scriptURL || reg.waiting?.scriptURL || reg.installing?.scriptURL || '';
+    const scopePath = new URL(reg.scope).pathname;
+    if (scopePath === '/' && script.endsWith('/sw.js')) await reg.unregister();
+  }
+}
+
 export async function registerStaffServiceWorker(): Promise<void> {
-  if (isChiefStaffDevMode() || !('serviceWorker' in navigator)) return;
+  if (!('serviceWorker' in navigator)) return;
+  try { await retireLegacyRootWorker(); } catch {}
+  if (isChiefStaffDevMode()) return;
   try {
     const base = import.meta.env.BASE_URL;
     if (base !== '/staff/') throw new Error('CHIEF Staff production base path mismatch.');
