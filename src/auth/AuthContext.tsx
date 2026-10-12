@@ -196,8 +196,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('checking');
     setError(null);
     try {
-      await authApi.login(username, password);
-      await refresh();
+      const loginResult = await authApi.login(username, password);
+      const session = await authApi.session();
+      if (!principalCanUseStaff(session.principal)) {
+        try { await authApi.logout(loginResult.csrf); } catch { /* The Staff surface still refuses the role locally. */ }
+        setIdentity(null);
+        setCsrf(null);
+        setStatus('unsupported_role');
+        setError('This authenticated Chief identity is not assigned to the Staff Farm surface.');
+        return false;
+      }
+      const farm = await authApi.farmSetup();
+      const mapped = mapProductionIdentity(session.principal, farm);
+      if (!mapped) {
+        try { await authApi.logout(loginResult.csrf); } catch { /* The Staff surface still refuses the role locally. */ }
+        setIdentity(null);
+        setCsrf(null);
+        setStatus('unsupported_role');
+        setError('This authenticated Chief identity does not resolve to a supported Worker, Supervisor or General Manager Farm role.');
+        return false;
+      }
+      setIdentity(mapped);
+      setCsrf(session.csrf);
+      setStatus('authenticated');
+      setError(null);
       return true;
     } catch (cause) {
       setIdentity(null);
@@ -206,7 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(cause instanceof AuthApiError && cause.status === 401 ? 'Invalid username or password.' : 'Chief sign-in could not be completed.');
       return false;
     }
-  }, [isDevMode, refresh]);
+  }, [isDevMode]);
 
   const logout = useCallback(async (): Promise<boolean> => {
     if (isDevMode || !csrf) return false;
