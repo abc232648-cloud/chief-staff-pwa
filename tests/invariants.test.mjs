@@ -35,6 +35,13 @@ test('Owner and Administrator are not silently converted into Staff Manager', ()
   assert.match(auth, /principal\.role !== 'Owner'/); assert.match(auth, /principal\.role !== 'Administrator'/); assert.match(auth, /principalCanUseStaff/); assert.match(app, /Owner\/Administrator identities should use Owner Mobile/);
 });
 
+test('a login created through Staff is revoked when the authenticated role cannot use Staff', () => {
+  assert.match(auth, /const loginResult = await authApi\.login/);
+  assert.match(auth, /await authApi\.logout\(loginResult\.csrf\)/);
+  assert.match(auth, /setStatus\('unsupported_role'\)/);
+  assert.match(auth, /return false/);
+});
+
 test('Farm role drives production Staff role', () => {
   assert.match(auth, /farm\.farm_role === 'GENERAL_MANAGER'/); assert.match(auth, /farm\.farm_role === 'SUPERVISOR'/); for (const role of ["'manager'","'supervisor'","'worker'"]) assert.ok(auth.includes(role));
 });
