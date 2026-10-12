@@ -3,10 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "engines": { "node": ">=24 <25" },
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "vite --port=3001 --host=0.0.0.0",
-    "build": "vite build",
+    "build": "vite build && node scripts/prepare-offline-shell.mjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "node scripts/check-source-safety.mjs",

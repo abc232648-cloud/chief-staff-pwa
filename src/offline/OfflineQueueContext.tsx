@@ -60,6 +60,9 @@ function photoMetadataMatches(value: { id: string; work_id: string; sha256: stri
 }
 
 async function replay(record: OfflineQueueRecord, identity: AuthenticatedStaffIdentity): Promise<ReplayResult> {
+  if (record.payloadVersion !== 1 || !['worker_report', 'incident', 'media_upload'].includes(record.kind)) {
+    throw new ChiefApiError({ message: 'This queued record uses an unsupported format. It remains on this device for review.', origin: 'protocol', code: 'UNSUPPORTED_QUEUED_FORMAT' });
+  }
   if (record.kind === 'worker_report') {
     const response = await submitWorkerReport(record.payload as WorkerReportPayload);
     const receipt = response.data;

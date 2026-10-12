@@ -1,3 +1,4 @@
+import { DeviceNotifications } from '../components/DeviceNotifications';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { StaffIdentity } from '../types/capabilities';
 export { TodayScreen } from '../features/today/TodayScreen';
@@ -32,6 +33,7 @@ export function MoreScreen({ identity }: ScreenProps) {
         <div className="placeholder-row"><AlertTriangle size={18} /> <strong>{identity.isSimulated ? 'Live Chief API blocked for DEV fixture identity' : 'Authenticated with Chief; feature data remains endpoint-specific'}</strong></div>
       </div></section>
       {!identity.isSimulated && <OfflineQueuePanel />}
+      {!identity.isSimulated && <DeviceNotifications surface="staff" />}
       <PwaDevicePanel />
     </div>
   );

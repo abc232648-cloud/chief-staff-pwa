@@ -59,7 +59,8 @@ test('missing authoritative listing stays retryable while integrity or metadata 
 
 test('task photo capture is shown only for Chief tasks requiring PHOTO and normalises evidence before queueing', () => {
   assert.match(taskPhoto, /task\.evidence_required\.includes\('PHOTO'\)/);
-  assert.match(taskPhoto, /createImageBitmap\(file\)/);
+  assert.match(taskPhoto, /createImageBitmap\(snapshot\)/);
+  assert.match(taskPhoto, /file\.arrayBuffer\(\)/);
   assert.match(taskPhoto, /canvas\.toBlob/);
   assert.match(taskPhoto, /'image\/png'/);
   assert.match(taskPhoto, /enqueueMedia\(task\.task_id, png\)/);

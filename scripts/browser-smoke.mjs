@@ -1,6 +1,7 @@
+import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 
-const preview = spawn('./node_modules/.bin/vite', ['preview', '--host', '127.0.0.1', '--port', '4174'], { stdio: 'ignore' });
+const preview = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--host', '127.0.0.1', '--port', '4174'], { stdio: 'ignore' });
 const origin = 'http://127.0.0.1:4174';
 const base = `${origin}/staff/`;
 
@@ -13,8 +14,8 @@ async function waitFor(url, attempts = 50) {
 }
 
 function renderedDom() {
-  const result = spawnSync('google-chrome', [
-    '--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',
+  const result = spawnSync(process.env.CHIEF_BROWSER_EXECUTABLE || 'google-chrome', [
+    '--headless=new','--disable-gpu','--disable-dev-shm-usage',
     '--disable-background-networking','--disable-component-update','--disable-default-apps',
     '--disable-features=ServiceWorker,MediaRouter,OptimizationHints','--no-first-run',
     '--no-default-browser-check','--virtual-time-budget=2500','--dump-dom',`${base}#/more`

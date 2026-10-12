@@ -1,18 +1,21 @@
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { rmSync } from 'node:fs';
+import { rmSync, mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-const vite = spawn('./node_modules/.bin/vite', ['--host', '127.0.0.1', '--port', '4175'], {
+const vite = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), '--host', '127.0.0.1', '--port', '4175'], {
   stdio: 'ignore',
   env: { ...process.env, VITE_CHIEF_STAFF_DEV_MODE: 'true' }
 });
 const origin = 'http://127.0.0.1:4175';
 const base = `${origin}/staff/`;
 const modulePath = '/staff/src/storage/offlineStore.ts';
-const profile = '/tmp/chief-staff-offline-acceptance';
-const debugPort = 9224;
+const profile = mkdtempSync(join(tmpdir(), 'chief-staff-offline-acceptance-'));
+let debugPort;
 let chrome = null;
 
-rmSync(profile, { recursive: true, force: true });
+
 
 async function waitFor(url, attempts = 60) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -26,17 +29,31 @@ async function waitFor(url, attempts = 60) {
 }
 
 async function connectChrome() {
-  chrome = spawn('google-chrome', [
-    '--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
+  const portFile = join(profile, "DevToolsActivePort");
+  rmSync(portFile, { force: true });
+  chrome = spawn(process.env.CHIEF_BROWSER_EXECUTABLE || 'google-chrome', [
+    '--headless=new',  '--disable-gpu', '--disable-dev-shm-usage',
     '--disable-background-networking', '--disable-component-update', '--disable-default-apps',
     '--disable-features=MediaRouter,OptimizationHints', '--no-first-run', '--no-default-browser-check',
-    `--remote-debugging-address=127.0.0.1`, `--remote-debugging-port=${debugPort}`,
+    `--remote-debugging-address=127.0.0.1`, '--remote-debugging-port=0',
     `--user-data-dir=${profile}`, `${base}#/more`
   ], { stdio: 'ignore' });
 
+  debugPort = undefined;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    try { debugPort = Number(readFileSync(portFile, 'utf8').split('\n')[0]); } catch {}
+    if (debugPort) break;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  if (!debugPort) throw new Error('Chrome did not publish its isolated debugging port.');
   await waitFor(`http://127.0.0.1:${debugPort}/json/list`);
-  const pages = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json();
-  const page = pages.find(entry => entry.type === 'page');
+  let page;
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const pages = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json();
+    page = pages.find(entry => entry.type === 'page' && entry.url.startsWith(base));
+    if (page) break;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
   if (!page?.webSocketDebuggerUrl) throw new Error('Chrome did not expose a page target.');
 
   const socket = new WebSocket(page.webSocketDebuggerUrl);
@@ -67,7 +84,16 @@ async function connectChrome() {
   });
 
   await command('Runtime.enable');
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await command('Page.enable');
+  await command('Page.navigate', { url: `${base}#/more` });
+  let ready = false;
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const state = await command('Runtime.evaluate', { expression: '({url:location.href,ready:document.readyState})', returnByValue: true });
+    const value = state.result?.value;
+    if (value?.url?.startsWith(base) && value.ready === 'complete') { ready = true; break; }
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  if (!ready) throw new Error('Staff document did not finish navigating in the test browser.');
 
   return {
     async evaluate(expression) {
@@ -85,11 +111,16 @@ async function connectChrome() {
   };
 }
 
-function stopChrome(connection) {
+async function stopChrome(connection) {
   connection?.close();
-  if (chrome) {
-    chrome.kill('SIGKILL');
-    chrome = null;
+  const child = chrome;
+  chrome = null;
+  if (child && child.exitCode === null && child.signalCode === null) {
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Test Chrome did not exit.')), 10_000);
+      child.once('exit', () => { clearTimeout(timer); resolve(); });
+      child.kill('SIGKILL');
+    });
   }
 }
 
@@ -129,7 +160,7 @@ try {
   }
 
   // Kill Chrome completely. IndexedDB must survive browser/application restart.
-  stopChrome(connection);
+  await stopChrome(connection);
   await new Promise(resolve => setTimeout(resolve, 750));
 
   // Second browser process, same profile: verify persistence, exact payload and user isolation.
@@ -186,9 +217,9 @@ try {
   }
 
   console.log('CHIEF Staff /staff/ offline restart/reconnect IndexedDB acceptance passed in real Chrome.');
-  stopChrome(connection);
+  await stopChrome(connection);
 } finally {
-  if (chrome) chrome.kill('SIGKILL');
+  await stopChrome();
   vite.kill('SIGTERM');
-  rmSync(profile, { recursive: true, force: true });
+  rmSync(profile, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 }

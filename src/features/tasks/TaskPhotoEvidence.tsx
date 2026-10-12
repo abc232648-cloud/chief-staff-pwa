@@ -13,11 +13,58 @@ function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
+async function stripCanvasMetadata(blob: Blob): Promise<Blob> {
+  const raw = new Uint8Array(await blob.arrayBuffer());
+  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+  if (!signature.every((byte, index) => raw[index] === byte)) throw new Error('Photo conversion did not produce PNG.');
+  const view = new DataView(raw.buffer);
+  const parts: BlobPart[] = [raw.slice(0, 8)];
+  let ended = false;
+  for (let offset = 8; offset < raw.length;) {
+    if (offset + 12 > raw.length) throw new Error('Photo conversion produced a truncated PNG.');
+    const end = offset + view.getUint32(offset) + 12;
+    if (end > raw.length) throw new Error('Photo conversion produced a truncated PNG chunk.');
+    const kind = String.fromCharCode(...raw.slice(offset + 4, offset + 8));
+    if (['IHDR', 'IDAT', 'IEND'].includes(kind)) parts.push(raw.slice(offset, end));
+    else if ((raw[offset + 4] & 32) === 0) throw new Error('Photo conversion produced an unsupported PNG format.');
+    // Canvas encoders differ: discard ancillary colour/profile/text metadata
+    // before hashing, while Chief still validates chunk CRCs and pixel bounds.
+    if (kind === 'IEND') {
+      if (end !== raw.length) throw new Error('Photo conversion produced trailing data.');
+      ended = true;
+    }
+    offset = end;
+  }
+  if (!ended) throw new Error('Photo conversion produced an incomplete PNG.');
+  return new Blob(parts, { type: 'image/png' });
+}
+
+async function decodePhoto(file: File): Promise<{ width: number; height: number; source: CanvasImageSource; close: () => void }> {
+  const snapshot = new Blob([await file.arrayBuffer()], { type: file.type });
+  try {
+    const bitmap = await createImageBitmap(snapshot);
+    return { width: bitmap.width, height: bitmap.height, source: bitmap, close: () => bitmap.close() };
+  } catch {
+    // Some browser builds cannot decode a File through createImageBitmap.
+    // A local object URL uses the browser image decoder without a network upload.
+    const url = URL.createObjectURL(snapshot);
+    try {
+      const image = new Image();
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error('This browser could not decode the selected photo.'));
+        image.src = url;
+      });
+      return { width: image.naturalWidth, height: image.naturalHeight, source: image, close: () => URL.revokeObjectURL(url) };
+    } catch (cause) { URL.revokeObjectURL(url); throw cause; }
+  }
+}
+
 async function normalisePhoto(file: File): Promise<Blob> {
   if (!['image/jpeg', 'image/png'].includes(file.type)) throw new Error('Choose a JPEG or PNG photo.');
   if (file.size <= 0 || file.size > CLIENT_MAX_SOURCE_BYTES) throw new Error('Choose a photo no larger than 12 MiB.');
 
-  const bitmap = await createImageBitmap(file);
+  const bitmap = await decodePhoto(file);
   try {
     const largest = Math.max(bitmap.width, bitmap.height);
     if (!largest || bitmap.width * bitmap.height > 40_000_000) throw new Error('Photo dimensions are too large for safe device processing.');
@@ -29,8 +76,8 @@ async function normalisePhoto(file: File): Promise<Blob> {
       canvas.height = Math.max(1, Math.round(bitmap.height * ratio));
       const context = canvas.getContext('2d', { alpha: false });
       if (!context) throw new Error('Photo conversion is unavailable on this device.');
-      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-      const png = await canvasBlob(canvas);
+      context.drawImage(bitmap.source, 0, 0, canvas.width, canvas.height);
+      const png = await stripCanvasMetadata(await canvasBlob(canvas));
       if (png.size <= CHIEF_MAX_BYTES) return png;
       targetSide = Math.max(320, Math.floor(targetSide * 0.8));
     }
@@ -49,8 +96,8 @@ export function TaskPhotoEvidence({ task, simulated }: { task: FarmTask; simulat
   if (!task.evidence_required.includes('PHOTO')) return null;
 
   const choose = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file || simulated) return;
     setBusy(true);
     setMessage(null);
@@ -64,6 +111,9 @@ export function TaskPhotoEvidence({ task, simulated }: { task: FarmTask; simulat
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Photo evidence could not be prepared.');
     } finally {
+      // Keep the selected File alive while WebKit decodes it; resetting the
+      // input earlier can invalidate its backing data in that browser.
+      input.value = '';
       setBusy(false);
     }
   };

@@ -1,3 +1,4 @@
+import { watchSession } from './sessionActivity';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { setStaffApiCsrfProvider } from '../api/client';
 import { isChiefStaffDevMode } from '../config/devMode';
@@ -166,18 +167,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isDevMode || status !== 'authenticated' || !csrf) return;
-    const timer = window.setInterval(() => {
-      void authApi.activity(csrf).catch(cause => {
-        if (cause instanceof AuthApiError && cause.status === 401) {
-          setIdentity(null);
-          setCsrf(null);
-          setStatus('unauthenticated');
-          setError('Chief session expired. Sign in again.');
+    const expired = (cause: unknown) => {
+      if (cause instanceof AuthApiError && cause.status === 401) {
+        setIdentity(null); setCsrf(null); setStatus('unauthenticated');
+        setError('Chief session expired. Sign in again.');
+      }
+    };
+    return watchSession(
+      () => authApi.activity(csrf).catch(expired),
+      () => authApi.session().then(session => {
+        if (session.principal.id !== identity?.userId || session.principal.role !== identity?.backendRole
+            || session.principal.session_id !== identity?.sessionId
+            || JSON.stringify(session.principal.domains) !== JSON.stringify(identity?.domains)) {
+          return refresh();
         }
-      });
-    }, 5 * 60 * 1000);
-    return () => window.clearInterval(timer);
-  }, [csrf, isDevMode, status]);
+        setCsrf(session.csrf);
+      }).catch(expired)
+    );
+  }, [csrf, identity, isDevMode, refresh, status]);
 
   const setDevRole = useCallback((role: StaffRole) => {
     if (!isDevMode) return;
