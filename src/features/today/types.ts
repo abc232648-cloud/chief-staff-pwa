@@ -1,5 +1,5 @@
 export type FarmBriefRole = 'OWNER' | 'GENERAL_MANAGER' | 'SUPERVISOR' | 'WORKER';
-export type ReportingStatus = 'REPORTED' | 'REPORTED_LATE' | 'MISSING' | 'AWAITING';
+export type ReportingStatus = 'REPORTED' | 'REPORTED_LATE' | 'MISSING' | 'AWAITING' | 'TIMEZONE_REVIEW_REQUIRED';
 
 export interface FarmBriefMetric {
   location: string;
@@ -39,7 +39,7 @@ export interface FarmBriefAlert {
 
 export interface FarmBrief {
   date: string;
-  timezone: 'Africa/Lagos';
+  timezone: string;
   generated_at: string;
   farm_role: FarmBriefRole;
   scope: 'FARM' | 'OWN_REPORTS_AND_ASSIGNED_WORK';

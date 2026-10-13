@@ -6,6 +6,7 @@ import type { ReportingStatus } from './types';
 const reportingLabel: Record<ReportingStatus, string> = {
   REPORTED: 'Reported',
   REPORTED_LATE: 'Reported late',
+  TIMEZONE_REVIEW_REQUIRED: 'Clock change: deadline needs review',
   MISSING: 'Missing',
   AWAITING: 'Awaiting'
 };
