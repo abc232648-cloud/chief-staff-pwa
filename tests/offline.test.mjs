@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const read = path => fs.readFileSync(path, 'utf8');
 const store = read('src/storage/offlineStore.ts');
+const security = read('src/storage/security.ts');
 const queue = read('src/offline/OfflineQueueContext.tsx');
 const panel = read('src/features/offline/OfflineQueuePanel.tsx');
 const media = read('src/api/media.ts');
@@ -15,6 +16,21 @@ test('S12 local records are namespaced by environment and immutable Chief user i
   assert.match(store, /ownerUserId:\s*identity\.userId/);
   assert.match(store, /record\.ownerUserId !== identity\.userId/);
   assert.doesNotMatch(store, /displayName|staffNumber/);
+});
+
+test('offline queue and media are encrypted at rest with a non-extractable per-namespace key', () => {
+  assert.match(store, /const DB_VERSION = 2/);
+  assert.match(store, /const KEY_STORE = 'crypto_keys'/);
+  assert.match(store, /encryptPayload\(/);
+  assert.match(store, /decryptPayload/);
+  assert.match(store, /encryptBytes\(/);
+  assert.match(store, /decryptBytes/);
+  assert.match(store, /storageVersion: 2/);
+  assert.match(store, /encryptedPayload/);
+  assert.match(store, /encryptedBlob/);
+  assert.match(store, /Offline encrypted data exists but its encryption key is unavailable/);
+  assert.match(security, /generateStorageEncryptionKey/);
+  assert.match(security, /false,\s*\n\s*\['encrypt', 'decrypt'\]/);
 });
 
 test('queue success is claimed only after IndexedDB transaction completion', () => {
