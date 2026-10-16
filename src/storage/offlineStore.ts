@@ -215,8 +215,10 @@ async function decryptOrMigrateQueue(db: IDBDatabase, identity: StaffIdentity, k
 async function decryptOrMigrateMedia(db: IDBDatabase, identity: StaffIdentity, key: CryptoKey, record: MediaStorageRecord): Promise<OfflineMediaRecord> {
   if (isStoredMedia(record)) {
     const bytes = await decryptBytes(key, record.encryptedBlob, record.environment, record.ownerUserId, mediaContext(record));
+    const buffer = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(buffer).set(bytes);
     const { storageVersion: _storageVersion, encryptedBlob: _encryptedBlob, ...metadata } = record;
-    return { ...metadata, blob: new Blob([bytes], { type: record.mimeType }) };
+    return { ...metadata, blob: new Blob([buffer], { type: record.mimeType }) };
   }
   const bytes = new Uint8Array(await record.blob.arrayBuffer());
   const envelope = await encryptBytes(key, bytes, record.environment, record.ownerUserId, mediaContext(record));
