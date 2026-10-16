@@ -8,7 +8,11 @@ export type WorkerReportCategory =
   | 'WATER'
   | 'EQUIPMENT'
   | 'INVENTORY'
-  | 'TASK_EVIDENCE';
+  | 'TASK_EVIDENCE'
+  | 'SANITATION'
+  | 'DISPOSAL'
+  | 'VACCINE_STORAGE'
+  | 'SAFETY';
 
 export type WorkerReportSeverity = 'ROUTINE' | 'IMPORTANT' | 'URGENT';
 export type WorkerReportBasis = 'MEASURED' | 'ESTIMATED' | 'COUNTED';
@@ -50,8 +54,9 @@ export interface WorkerReportReceipt {
   evidence_status: 'HUMAN_REPORTED';
 }
 
-export function getWorkerReports(signal?: AbortSignal): Promise<ApiResponse<WorkerReportOverview>> {
-  return chiefApiClient.get<WorkerReportOverview>('/api/farm/worker-reports', signal);
+export function getWorkerReports(signal?: AbortSignal, category?: WorkerReportCategory): Promise<ApiResponse<WorkerReportOverview>> {
+  const path = category ? `/api/farm/worker-reports?category=${encodeURIComponent(category)}` : '/api/farm/worker-reports';
+  return chiefApiClient.get<WorkerReportOverview>(path, signal);
 }
 
 export function submitWorkerReport(payload: WorkerReportPayload, signal?: AbortSignal): Promise<ApiResponse<WorkerReportReceipt>> {
